@@ -91,17 +91,25 @@ app.get('/health', (req, res) => res.json({ status: 'healthy' }));
 
 app.post('/api/chat/:clientId', chatLimiter, async (req, res) => {
   try {
-    const { clientId } = req.params;
+    let { clientId } = req.params;
     const { message, conversationId, visitorId } = req.body;
     
-    // Get client info
-    const clientResult = await db.query(
-      'SELECT * FROM clients WHERE id = $1',
-      [clientId]
-    );
+    if (!message) return res.status(400).json({ error: 'Message is required' });
+
+    // Client lookup with UUID validation and default fallback
+    let clientResult;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId);
+
+    if (isUuid) {
+      clientResult = await db.query('SELECT * FROM clients WHERE id = $1', [clientId]);
+    } else {
+      // Fallback for 'default-client' or invalid UUIDs: Pick the most recent client
+      clientResult = await db.query('SELECT * FROM clients ORDER BY created_at DESC LIMIT 1');
+    }
     
     if (clientResult.rows.length === 0) return res.status(404).json({ error: 'Client not found' });
     const client = clientResult.rows[0];
+    clientId = client.id; // Ensure we use the actual UUID for subsequent DB calls
 
     // Get knowledge base from file if specified, else from DB
     let knowledgeBase = client.knowledge_base;
