@@ -193,8 +193,8 @@
 
     <main>
         <section class="hero">
-            <h1>Scale Your Business<br>With Intelligent AI</h1>
-            <p>Automate lead capture, engage visitors 24/7, and grow your revenue with context-aware AI chatbots.</p>
+            <h1>Scale Your Business<br>With Dynamic AI</h1>
+            <p>Automate lead capture and engage visitors with a chatbot that instantly adapts to your brand and business context.</p>
             <div class="btn-container">
                 <a href="javascript:void(0)" onclick="openWrapper()" class="btn btn-primary">Try Live Demo</a>
                 <a href="plans.html" class="btn btn-outline">View Plans</a>
@@ -234,14 +234,12 @@
         }
 
         function checkCode() {
-            const code = document.getElementById('accessCode').value;
-            const error = document.getElementById('errorMessage');
-            
-            // Default code for now
-            if (code === 'VIP2026') {
-                window.location.href = 'app.html';
+            const code = document.getElementById('accessCode') ? document.getElementById('accessCode').value.trim() : '';
+            if (code) {
+                window.location.href = `app.html?code=${encodeURIComponent(code)}`;
             } else {
-                error.style.display = 'block';
+                const error = document.getElementById('errorMessage');
+                if (error) error.style.display = 'block';
             }
         }
 

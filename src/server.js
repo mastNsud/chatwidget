@@ -19,48 +19,52 @@ app.set('trust proxy', 1);
 
 // Global state for fail-safes
 let isDbReady = false;
-let dbError = null;
 
-// Logger (Console Only for maximal compatibility)
+// Client Configurations (The "Secret Code" Mapping)
+const CLIENT_CONFIGS = {
+  "VIP2026": {
+    id: "3abcb41c-0225-43eb-a09a-8dffc432d976", // Matches sample client UUID
+    name: "Standard Demo",
+    colors: { primary: "#2563eb", secondary: "#1e40af" },
+    knowledge: "General AI Chatbot Service information..."
+  },
+  "REALESTATE": {
+    id: "real-estate-demo-uuid",
+    name: "Luxury Homes Properties",
+    colors: { primary: "#065f46", secondary: "#064e3b" },
+    knowledge: "Real Estate focus: buying, selling, and valuation in Vijayawada..."
+  }
+};
+
+// Logger
 const logger = {
   info: (msg) => console.log(`[INFO] ${msg}`),
   error: (msg, err) => console.error(`[ERROR] ${msg}`, err),
   warn: (msg) => console.warn(`[WARN] ${msg}`)
 };
 
-// DB Pool (Initialized but not connecting yet)
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
-
-// Twilio
-const twilioClient = process.env.TWILIO_ACCOUNT_SID ? twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-) : null;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Root route to ensure landing page loads
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-const chatLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 100
-});
-
-// OpenRouter Models (Free with fallback)
+// OpenRouter Models (Priority: Mistral-7B, Fallback: Gemini Flash)
 const MODELS = [
-  'google/gemini-2.0-flash-lite-preview-02-05:free',
   'mistralai/mistral-7b-instruct:free',
+  'google/gemini-2.0-flash-lite-preview-02-05:free',
   'google/gemma-2-9b-it:free'
 ];
+
+// Twilio WhatsApp Helper
+async function sendWhatsAppNotification(to, body) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_WHATSAPP_NUMBER || !to) return;
+  try {
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    await client.messages.create({
+      from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+      to: `whatsapp:${to}`,
+      body: body
+    });
+    logger.info(`WhatsApp sent to ${to}`);
+  } catch (err) {
+    logger.error('WhatsApp failed', err);
+  }
+}
 
 async function callOpenRouter(messages, modelIndex = 0) {
   if (modelIndex >= MODELS.length) {
@@ -98,70 +102,52 @@ app.get('/health', (req, res) => res.json({ status: 'healthy' }));
 
 app.post('/api/chat/:clientId', chatLimiter, async (req, res) => {
   try {
-    let { clientId } = req.params;
+    const { clientId } = req.params; // This is the Access Code now
     const { message, conversationId, visitorId } = req.body;
     
     if (!message) return res.status(400).json({ error: 'Message is required' });
 
-    // FAIL-SAFE: If DB isn't ready, provide a limited but WORKING experience
-    if (!isDbReady) {
-      const aiResponse = await callOpenRouter([
-        { role: 'system', content: 'You are a helpful assistant. Note: Database is currently in maintenance mode.' },
-        { role: 'user', content: message }
-      ]);
-      return res.json({
-        message: aiResponse.text + "\n\n(Note: We're currently in limited mode, but your message was processed!)",
-        conversationId: 'temporary',
-        model: aiResponse.model
-      });
-    }
-
-    // Normal flow with DB
-    let clientResult;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId);
-
-    if (isUuid) {
-      clientResult = await db.query('SELECT * FROM clients WHERE id = $1', [clientId]);
-    } else {
-      clientResult = await db.query('SELECT * FROM clients ORDER BY created_at DESC LIMIT 1');
-    }
+    // 1. Get Client Config (Static First for Speed/Reliability)
+    let client = CLIENT_CONFIGS[clientId];
     
-    if (clientResult.rows.length === 0) return res.status(404).json({ error: 'Client not found' });
-    const client = clientResult.rows[0];
-    clientId = client.id;
-
-    // ... (rest of the logic remains similar but wrapped in try-catches)
-    let knowledgeBase = client.knowledge_base;
-    try {
-      const kbFile = path.join(__dirname, '..', 'knowledge.txt');
-      if (fs.existsSync(kbFile)) {
-        knowledgeBase = fs.readFileSync(kbFile, 'utf8') + "\n\nClient Specific context:\n" + knowledgeBase;
-      }
-    } catch (e) { logger.error('Error reading KB', e); }
-
-    let convId = conversationId;
-    if (!convId) {
-      const dbRes = await db.query('INSERT INTO conversations (client_id, visitor_id) VALUES ($1, $2) RETURNING id', [clientId, visitorId || 'anonymous']);
-      convId = dbRes.rows[0].id;
+    // 2. Fallback to DB if not in static config and DB is ready
+    if (!client && isDbReady) {
+      const dbRes = await db.query('SELECT * FROM clients WHERE id::text = $1', [clientId]);
+      if (dbRes.rows.length > 0) client = dbRes.rows[0];
     }
 
-    const history = await db.query('SELECT role, content FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC', [convId]);
+    // 3. Last Fallback: Default client
+    if (!client) {
+      client = CLIENT_CONFIGS["VIP2026"];
+    }
+
+    // Prepare prompt
+    const knowledgeBase = client.knowledge || client.knowledge_base || "";
     const messages = [
-      { role: 'system', content: `You are a helpful assistant for ${client.name}.\n\nKB:\n${knowledgeBase}` },
-      ...history.rows.map(m => ({ role: m.role, content: m.content })),
+      { role: 'system', content: `You are a helpful assistant for ${client.name}.\n\nKB:\n${knowledgeBase}\n\nGOAL: Be concise and collect name/email if possible.` },
       { role: 'user', content: message }
     ];
 
     const aiResponse = await callOpenRouter(messages);
 
-    // Save logs asynchronously to not block user
-    db.query('INSERT INTO messages (conversation_id, role, content) VALUES ($1, $2, $3)', [convId, 'user', message]).catch(e => logger.error('DB Log Error', e));
-    db.query('INSERT INTO messages (conversation_id, role, content) VALUES ($1, $2, $3)', [convId, 'assistant', aiResponse.text]).catch(e => logger.error('DB Log Error', e));
+    // Save to DB in background if ready
+    if (isDbReady) {
+      db.query('INSERT INTO messages (conversation_id, role, content) VALUES ($1, $2, $3)', 
+        [conversationId || 'temporary', 'user', message]).catch(() => {});
+    }
+
+    // WhatsApp Notification on lead detection
+    const leadData = extractLeadInfo(aiResponse.text, message);
+    if ((leadData.email || leadData.phone) && process.env.ADMIN_WHATSAPP) {
+      await sendWhatsAppNotification(process.env.ADMIN_WHATSAPP, 
+        `🔥 New Lead for ${client.name}!\n\nEmail: ${leadData.email || 'N/A'}\nPhone: ${leadData.phone || 'N/A'}\nMessage: ${message}`);
+    }
 
     res.json({
       message: aiResponse.text,
-      conversationId: convId,
-      model: aiResponse.model
+      conversationId: conversationId || 'temporary',
+      model: aiResponse.model,
+      branding: client.colors
     });
 
   } catch (error) {
