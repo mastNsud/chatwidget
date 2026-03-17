@@ -4,7 +4,7 @@
   "description": "AI-powered lead generation chatbot with WhatsApp notifications",
   "main": "src/server.js",
   "scripts": {
-    "start": "npm run migrate && node src/server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/db-migrate.js",
     "test": "jest",
@@ -23,7 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
-    "axios": "^1.13.6",
+    "axios": "^1.6.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

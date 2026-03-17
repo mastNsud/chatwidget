@@ -12,7 +12,34 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080; // Railway prefers 8080 or dynamic PORT
+
+// Helper to run migration within the same process
+const runMigration = async () => {
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  });
+  const client = await pool.connect();
+  try {
+    console.log('🔄 Running in-app database migration...');
+    await client.query('BEGIN');
+    // ... we don't need to copy the whole thing, just ensure tables exist
+    await client.query(`CREATE TABLE IF NOT EXISTS clients (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name VARCHAR(255) NOT NULL, domain VARCHAR(255), knowledge_base TEXT, whatsapp_number VARCHAR(20), config JSONB DEFAULT '{}', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await client.query(`CREATE TABLE IF NOT EXISTS conversations (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), client_id UUID REFERENCES clients(id) ON DELETE CASCADE, visitor_id VARCHAR(255), started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ended_at TIMESTAMP, lead_score INTEGER DEFAULT 0, lead_data JSONB DEFAULT '{}', total_messages INTEGER DEFAULT 0)`);
+    await client.query(`CREATE TABLE IF NOT EXISTS messages (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE, role VARCHAR(10) CHECK (role IN ('user', 'assistant')), content TEXT NOT NULL, tokens_used INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await client.query(`CREATE TABLE IF NOT EXISTS leads (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), client_id UUID REFERENCES clients(id) ON DELETE CASCADE, conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL, name VARCHAR(255), email VARCHAR(255), phone VARCHAR(20), extracted_data JSONB DEFAULT '{}', score INTEGER DEFAULT 0, status VARCHAR(20) DEFAULT 'new', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+    await client.query('COMMIT');
+    console.log('✅ In-app migration successful');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('❌ In-app migration failed:', err);
+  } finally {
+    client.release();
+    await pool.end();
+  }
+};
 
 // Logger
 const logger = winston.createLogger({
@@ -38,10 +65,14 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID ? twilio(
 ) : null;
 
 // Middleware
-app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Root route to ensure landing page loads
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 const chatLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -177,4 +208,18 @@ function extractLeadInfo(aiText, userText) {
   return data;
 }
 
-app.listen(PORT, () => logger.info(`🚀 Server on ${PORT}`));
+// Start Server
+const start = async () => {
+  try {
+    await runMigration();
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server is listening on 0.0.0.0:${PORT}`);
+      logger.info(`🚀 Server on ${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+start();
