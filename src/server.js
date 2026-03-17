@@ -17,6 +17,30 @@ const PORT = process.env.PORT || 3000;
 // Trust Railway Proxy
 app.set('trust proxy', 1);
 
+// Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // For easier demo setup
+}));
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Root route to ensure landing page loads
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// DB Pool (Initialized but not connecting yet)
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 100
+});
+
 // Global state for fail-safes
 let isDbReady = false;
 
