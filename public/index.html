@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Lead Generation Chatbot | Transform Your Business</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        header {
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 1rem;
+            background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            max-width: 600px;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 99px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            border: 1px solid var(--border);
+            color: var(--text);
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-outline:hover {
+            background: var(--glass);
+        }
+
+        .wrapper-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--glass);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            font-family: 'Outfit', sans-serif;
+            margin-top: 0;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .btn-container { flex-direction: column; width: 100%; }
+            .btn { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">AI LeadGen</div>
+        <a href="#plans" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Pricing</a>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Scale Your Business<br>With Intelligent AI</h1>
+            <p>Automate lead capture, engage visitors 24/7, and grow your revenue with context-aware AI chatbots.</p>
+            <div class="btn-container">
+                <a href="javascript:void(0)" onclick="openWrapper()" class="btn btn-primary">Try Live Demo</a>
+                <a href="plans.html" class="btn btn-outline">View Plans</a>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="feature-card">
+                <h3>Natural Conversations</h3>
+                <p>No more boring forms. Our AI extracts leads through helpful dialogue, increasing conversion by 3x.</p>
+            </div>
+            <div class="feature-card">
+                <h3>WhatsApp Alerts</h3>
+                <p>Get notified instantly when a hot lead is captured. Never miss a potential deal again.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Context Aware</h3>
+                <p>Train the bot with your own data. It knows your products, services, and pricing like an expert.</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="wrapperModal" class="wrapper-modal">
+        <div class="modal-content">
+            <h2>Enter Access Code</h2>
+            <p style="color: var(--muted)">Please enter your unique access code to view the live demo.</p>
+            <input type="text" id="accessCode" placeholder="VIP Code">
+            <div id="errorMessage" class="error">Invalid access code. Please try again.</div>
+            <button onclick="checkCode()" class="btn btn-primary" style="width: 100%">Enter Demo</button>
+            <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--muted)">Don't have a code? <a href="plans.html" style="color: var(--primary)">Purchase a plan</a></p>
+        </div>
+    </div>
+
+    <script>
+        function openWrapper() {
+            document.getElementById('wrapperModal').style.display = 'flex';
+        }
+
+        function checkCode() {
+            const code = document.getElementById('accessCode').value;
+            const error = document.getElementById('errorMessage');
+            
+            // Default code for now
+            if (code === 'VIP2026') {
+                window.location.href = 'app.html';
+            } else {
+                error.style.display = 'block';
+            }
+        }
+
+        // Close modal on escape
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('wrapperModal').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

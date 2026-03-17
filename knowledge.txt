@@ -1,0 +1,24 @@
+# AI Chatbot Knowledge Base
+
+## Business Overview
+Name: [Your Business Name]
+Service: AI Lead Generation Chatbot
+Mission: Helping SMBs automate lead capture and improve customer engagement with intelligent, context-aware conversations.
+
+## Service Plans
+1. **Starter Plan**: ₹3,500/month. Includes 500 conversations/month, basic lead extraction, and email notifications.
+2. **Professional Plan**: ₹4,500/month. Includes 1,500 conversations/month, advanced profiling, WhatsApp alerts, and daily reports.
+3. **Enterprise Plan**: Custom pricing. Unlimited conversations, full CRM integration, and 24/7 priority support.
+
+## FAQs
+- **How does it work?**: Our bot engages visitors on your website, answers their questions, and gathers contact details naturally.
+- **Is it easy to install?**: Yes, just a single line of script on your website.
+- **Can I customize it?**: Absolutely. We tailor the knowledge base and design to match your brand.
+- **What about privacy?**: All data is securely stored and encrypted. We follow strict data protection guidelines.
+
+## Lead Extraction Focus
+- Name
+- Email
+- Phone Number
+- Business Needs/Interest
+- Preferred Callback Time

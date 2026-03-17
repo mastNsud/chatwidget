@@ -1,0 +1,444 @@
+{
+  "service_name": "ai-lead-chatbot-service",
+  "version": "1.0.0",
+  "description": "Context-aware AI chatbot for lead generation with WhatsApp notifications",
+  
+  "deployment": {
+    "platform": "railway",
+    "plan": "hobby",
+    "region": "us-west",
+    "environment": "production"
+  },
+  
+  "architecture": {
+    "backend": {
+      "runtime": "node",
+      "version": "20.x",
+      "framework": "express",
+      "port": 3000,
+      "resources": {
+        "memory": "512MB",
+        "cpu": "0.5",
+        "replicas": 1
+      }
+    },
+    "frontend": {
+      "type": "react",
+      "build_command": "npm run build",
+      "output_directory": "dist"
+    },
+    "database": {
+      "type": "postgresql",
+      "version": "15",
+      "storage": "1GB",
+      "connection_pooling": true,
+      "max_connections": 20
+    }
+  },
+  
+  "ai_configuration": {
+    "provider": "anthropic",
+    "model": "claude-haiku-4-20250514",
+    "parameters": {
+      "max_tokens": 1000,
+      "temperature": 0.7,
+      "caching_enabled": true,
+      "cache_ttl": 604800
+    },
+    "cost_optimization": {
+      "prompt_caching": true,
+      "conversation_limit_per_client": 500,
+      "knowledge_base_caching": true,
+      "batch_processing": false
+    }
+  },
+  
+  "features": {
+    "core": [
+      "embeddable_widget",
+      "knowledge_base_management",
+      "lead_extraction",
+      "whatsapp_notifications",
+      "daily_reports",
+      "conversation_logging"
+    ],
+    "advanced": [
+      "multi_language_support",
+      "lead_scoring",
+      "analytics_dashboard",
+      "custom_landing_page",
+      "file_upload",
+      "calendar_integration"
+    ]
+  },
+  
+  "lead_extraction_config": {
+    "required_fields": [
+      "name",
+      "email",
+      "phone"
+    ],
+    "optional_fields": [
+      "location",
+      "budget",
+      "timeline",
+      "specific_requirement",
+      "urgency_level"
+    ],
+    "extraction_strategy": "conversational",
+    "lead_scoring_rules": {
+      "hot": "all_required_fields + urgency_high",
+      "warm": "all_required_fields + specific_requirement",
+      "cold": "partial_information"
+    }
+  },
+  
+  "whatsapp_integration": {
+    "provider": "twilio",
+    "features": [
+      "instant_lead_notification",
+      "daily_summary",
+      "high_priority_alerts"
+    ],
+    "notification_template": {
+      "lead_captured": "🎯 New Lead Alert!\n\nName: {{name}}\nEmail: {{email}}\nPhone: {{phone}}\nInterest: {{requirement}}\nScore: {{score}}/10\n\nView full conversation: {{link}}",
+      "daily_summary": "📊 Daily Report - {{date}}\n\nTotal Chats: {{total_conversations}}\nNew Leads: {{new_leads}}\nHot Leads: {{hot_leads}}\nConversion Rate: {{conversion_rate}}%\n\nFull report: {{link}}"
+    }
+  },
+  
+  "database_schema": {
+    "tables": {
+      "clients": {
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "name VARCHAR(255) NOT NULL",
+          "domain VARCHAR(255)",
+          "knowledge_base TEXT",
+          "whatsapp_number VARCHAR(20)",
+          "config JSONB",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "indexes": ["domain", "created_at"]
+      },
+      "conversations": {
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "client_id UUID REFERENCES clients(id)",
+          "visitor_id VARCHAR(255)",
+          "started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "ended_at TIMESTAMP",
+          "lead_score INTEGER",
+          "lead_data JSONB",
+          "total_messages INTEGER DEFAULT 0"
+        ],
+        "indexes": ["client_id", "started_at", "lead_score"]
+      },
+      "messages": {
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "conversation_id UUID REFERENCES conversations(id)",
+          "role VARCHAR(10) CHECK (role IN ('user', 'assistant'))",
+          "content TEXT NOT NULL",
+          "tokens_used INTEGER",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "indexes": ["conversation_id", "created_at"]
+      },
+      "leads": {
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "client_id UUID REFERENCES clients(id)",
+          "conversation_id UUID REFERENCES conversations(id)",
+          "name VARCHAR(255)",
+          "email VARCHAR(255)",
+          "phone VARCHAR(20)",
+          "extracted_data JSONB",
+          "score INTEGER",
+          "status VARCHAR(20) DEFAULT 'new'",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "indexes": ["client_id", "status", "created_at", "score"]
+      },
+      "analytics": {
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "client_id UUID REFERENCES clients(id)",
+          "date DATE NOT NULL",
+          "total_conversations INTEGER DEFAULT 0",
+          "total_leads INTEGER DEFAULT 0",
+          "hot_leads INTEGER DEFAULT 0",
+          "warm_leads INTEGER DEFAULT 0",
+          "cold_leads INTEGER DEFAULT 0",
+          "avg_conversation_length FLOAT",
+          "api_cost FLOAT",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "indexes": ["client_id", "date"]
+      }
+    }
+  },
+  
+  "api_endpoints": {
+    "/api/chat/:clientId": {
+      "method": "POST",
+      "description": "Main chat endpoint for widget",
+      "authentication": "client_token",
+      "rate_limit": "100/minute",
+      "request_body": {
+        "message": "string",
+        "conversationId": "string (optional)",
+        "visitorId": "string (optional)"
+      },
+      "response": {
+        "message": "string",
+        "conversationId": "string",
+        "leadStatus": "object"
+      }
+    },
+    "/api/widget/:clientId": {
+      "method": "GET",
+      "description": "Get widget configuration",
+      "authentication": "none",
+      "response": {
+        "colors": "object",
+        "greeting": "string",
+        "config": "object"
+      }
+    },
+    "/api/knowledge/:clientId": {
+      "method": "PUT",
+      "description": "Update knowledge base",
+      "authentication": "admin_token",
+      "request_body": {
+        "content": "string"
+      }
+    },
+    "/api/reports/:clientId": {
+      "method": "GET",
+      "description": "Get analytics reports",
+      "authentication": "client_token",
+      "query_params": {
+        "startDate": "date",
+        "endDate": "date",
+        "type": "daily|weekly|monthly"
+      }
+    },
+    "/api/leads/:clientId": {
+      "method": "GET",
+      "description": "Get leads list",
+      "authentication": "client_token",
+      "query_params": {
+        "status": "new|contacted|converted",
+        "score": "integer",
+        "limit": "integer",
+        "offset": "integer"
+      }
+    }
+  },
+  
+  "widget_customization": {
+    "position": ["bottom-right", "bottom-left", "top-right", "top-left"],
+    "colors": {
+      "primary": "#customizable",
+      "secondary": "#customizable",
+      "text": "#customizable",
+      "background": "#customizable"
+    },
+    "size": {
+      "width": "400px",
+      "height": "600px",
+      "minimized_size": "60px"
+    },
+    "branding": {
+      "logo": "url",
+      "company_name": "string",
+      "tagline": "string"
+    },
+    "behavior": {
+      "auto_open": false,
+      "auto_open_delay": 3000,
+      "greeting_message": "customizable",
+      "working_hours": "optional"
+    }
+  },
+  
+  "monitoring": {
+    "metrics": [
+      "api_response_time",
+      "conversation_count",
+      "lead_conversion_rate",
+      "error_rate",
+      "api_cost",
+      "database_connections",
+      "memory_usage",
+      "cpu_usage"
+    ],
+    "alerts": {
+      "high_error_rate": {
+        "threshold": "5%",
+        "action": "email_admin"
+      },
+      "high_api_cost": {
+        "threshold": "$10/day",
+        "action": "email_admin"
+      },
+      "low_conversion_rate": {
+        "threshold": "10%",
+        "action": "review_conversation_flow"
+      }
+    }
+  },
+  
+  "security": {
+    "authentication": {
+      "widget": "client_token (read-only)",
+      "admin": "jwt_token",
+      "api": "bearer_token"
+    },
+    "data_encryption": {
+      "at_rest": true,
+      "in_transit": true,
+      "sensitive_fields": ["phone", "email"]
+    },
+    "rate_limiting": {
+      "widget": "100_requests_per_minute",
+      "api": "1000_requests_per_hour",
+      "admin": "unlimited"
+    },
+    "cors": {
+      "allowed_origins": "client_domains",
+      "credentials": true
+    }
+  },
+  
+  "environment_variables": {
+    "required": [
+      "CLAUDE_API_KEY",
+      "DATABASE_URL",
+      "TWILIO_ACCOUNT_SID",
+      "TWILIO_AUTH_TOKEN",
+      "TWILIO_WHATSAPP_NUMBER",
+      "JWT_SECRET",
+      "ADMIN_EMAIL"
+    ],
+    "optional": [
+      "SENTRY_DSN",
+      "REDIS_URL",
+      "SMTP_HOST",
+      "SMTP_PORT",
+      "SMTP_USER",
+      "SMTP_PASS"
+    ]
+  },
+  
+  "deployment_steps": [
+    {
+      "step": 1,
+      "action": "Create Railway account and project",
+      "command": "railway login && railway init"
+    },
+    {
+      "step": 2,
+      "action": "Add PostgreSQL database",
+      "command": "railway add --database postgresql"
+    },
+    {
+      "step": 3,
+      "action": "Set environment variables",
+      "command": "railway variables set CLAUDE_API_KEY=xxx ..."
+    },
+    {
+      "step": 4,
+      "action": "Deploy backend service",
+      "command": "railway up"
+    },
+    {
+      "step": 5,
+      "action": "Run database migrations",
+      "command": "railway run npm run migrate"
+    },
+    {
+      "step": 6,
+      "action": "Generate widget code for client",
+      "command": "npm run generate-widget --clientId=xxx"
+    },
+    {
+      "step": 7,
+      "action": "Test widget integration",
+      "command": "Open test page with widget embedded"
+    }
+  ],
+  
+  "maintenance_tasks": {
+    "daily": [
+      "Generate and send daily reports",
+      "Monitor API costs",
+      "Check error logs"
+    ],
+    "weekly": [
+      "Review conversation quality",
+      "Optimize prompt templates",
+      "Update knowledge bases (on client request)"
+    ],
+    "monthly": [
+      "Client performance review",
+      "Cost optimization analysis",
+      "Feature usage analysis",
+      "Security audit"
+    ]
+  },
+  
+  "backup_and_recovery": {
+    "database_backup": {
+      "frequency": "daily",
+      "retention": "30_days",
+      "storage": "railway_managed"
+    },
+    "disaster_recovery": {
+      "rto": "4_hours",
+      "rpo": "24_hours",
+      "procedure": "Restore from Railway backup"
+    }
+  },
+  
+  "cost_projections": {
+    "per_client_monthly": {
+      "railway_hosting": 1.5,
+      "claude_api": 1.0,
+      "whatsapp_api": 0.3,
+      "total_usd": 2.8,
+      "total_inr": 235
+    },
+    "scaling_costs": {
+      "20_clients": {
+        "railway": 30,
+        "api": 20,
+        "whatsapp": 6,
+        "total_usd": 56,
+        "total_inr": 4700
+      },
+      "40_clients": {
+        "railway": 70,
+        "api": 40,
+        "whatsapp": 12,
+        "total_usd": 122,
+        "total_inr": 10200
+      }
+    }
+  },
+  
+  "client_limits": {
+    "hobby_plan": {
+      "max_clients": 40,
+      "conversations_per_client": 500,
+      "knowledge_base_size": "50KB",
+      "monthly_cost_cap": 10
+    },
+    "upgrade_triggers": {
+      "clients_approaching": 35,
+      "monthly_cost_exceeding": 50,
+      "need_advanced_features": true
+    }
+  }
+}
