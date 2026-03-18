@@ -111,11 +111,16 @@
     </div>
 
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessCode = urlParams.get('code') || 'default-client';
         let conversationId = null;
 
         function toggleChat() {
             const win = document.getElementById('chat-window');
             win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
+            if (win.style.display === 'flex' && !document.getElementById('messages').hasChildNodes()) {
+                addMessage("Hello! How can I help you today?", 'bot');
+            }
         }
 
         async function sendMessage() {
@@ -127,8 +132,7 @@
             input.value = '';
 
             try {
-                // For demo purposes, we'll use a hardcoded clientId or the first one in DB
-                const response = await fetch('/api/chat/default-client', {
+                const response = await fetch(`/api/chat/${accessCode}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: msg, conversationId })
@@ -136,10 +140,17 @@
                 const data = await response.json();
                 addMessage(data.message, 'bot');
                 conversationId = data.conversationId;
+
+                // Apply dynamic branding if provided
+                if (data.branding) {
+                    document.documentElement.style.setProperty('--primary', data.branding.primary);
+                    document.documentElement.style.setProperty('--secondary', data.branding.secondary);
+                }
             } catch (e) {
                 addMessage("Sorry, I'm having trouble connecting right now.", 'bot');
             }
         }
+
 
         function addMessage(text, role) {
             const div = document.createElement('div');

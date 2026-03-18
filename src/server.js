@@ -47,7 +47,7 @@ let isDbReady = false;
 // Client Configurations (The "Secret Code" Mapping)
 const CLIENT_CONFIGS = {
   "VIP2026": {
-    id: "3abcb41c-0225-43eb-a09a-8dffc432d976", // Matches sample client UUID
+    id: "3abcb41c-0225-43eb-a09a-8dffc432d976", 
     name: "Standard Demo",
     colors: { primary: "#2563eb", secondary: "#1e40af" },
     knowledge: "General AI Chatbot Service information..."
@@ -57,7 +57,14 @@ const CLIENT_CONFIGS = {
     name: "Luxury Homes Properties",
     colors: { primary: "#065f46", secondary: "#064e3b" },
     knowledge: "Real Estate focus: buying, selling, and valuation in Vijayawada..."
+  },
+  "LEXUS2026": {
+    id: "lexus-projects-uuid",
+    name: "Lexus Projects",
+    colors: { primary: "#1e3a8a", secondary: "#2563eb", accent: "#d4af37" },
+    knowledge: "Lexus Projects is a premium real estate developer in Vijayawada by River Krishna. Projects: Lexus Park (Resort living, 2/3/4 BHK, Villas), Signature Service Suites (Ready to move, fully furnished), Commercial Mall (Benz Circle). Amenities: infinity pool, spa, smart homes. Price: 45L to 3.5Cr. RERA approved. Persona: Lexi, Luxury living advisor."
   }
+
 };
 
 // Logger
